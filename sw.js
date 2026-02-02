@@ -1,4 +1,4 @@
-const CACHE_NAME = 'barangay-k9-v3';
+const CACHE_NAME = 'barangay-k9-v4';
 const ASSETS = [
   '/',
   '/index.html',
@@ -21,4 +21,5 @@ self.addEventListener('fetch', (e) => {
   );
 
 });
+
 
