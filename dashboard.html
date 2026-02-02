@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Barangay Registry Admin</title>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -10,7 +10,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
@@ -29,6 +28,7 @@
             --danger: #f56565;
         }
 
+        /* --- CORE LAYOUT & NO-RELOAD FIX --- */
         body { 
             font-family: 'Poppins', sans-serif; 
             background: linear-gradient(rgba(15, 23, 42, 0.85), rgba(88, 28, 135, 0.85)), 
@@ -41,10 +41,13 @@
             height: 100vh; 
             overflow: hidden; 
             color: var(--text-dark);
+            
+            /* THIS PREVENTS PULL-TO-REFRESH ON MOBILE */
+            overscroll-behavior-y: contain; 
         }
 
         /* --- PRELOADER --- */
-        #app-wrapper { display: flex; width: 100%; height: 100%; display: none; } /* Hidden by default */
+        #app-wrapper { display: flex; width: 100%; height: 100%; display: none; } 
         #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #1a202c; z-index: 9999; display: flex; justify-content: center; align-items: center; color: white; flex-direction: column; }
 
         /* --- SIDEBAR --- */
@@ -61,17 +64,22 @@
         .nav-item { 
             padding: 14px 18px; border-radius: 12px; cursor: pointer; color: #a0aec0; margin-bottom: 8px; transition: all 0.3s ease; 
             display: flex; align-items: center; gap: 15px; font-weight: 500; font-size: 14px;
-            white-space: nowrap;
+            white-space: nowrap; user-select: none;
         }
         .nav-item:hover { background: rgba(255,255,255,0.1); color: white; transform: translateX(5px); }
         .nav-item.active { background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%); color: white; box-shadow: 0 4px 15px rgba(118, 75, 162, 0.4); }
         .spacer { flex: 1; }
 
         /* --- MAIN AREA --- */
-        .main { flex: 1; padding: 30px; overflow-y: auto; position: relative; }
-        .view-section { display: none; animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        .main { 
+            flex: 1; padding: 30px; overflow-y: auto; position: relative; 
+            /* Smooth scroll for main area */
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+        }
+        .view-section { display: none; animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
         .view-section.active { display: block; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         h2 { margin-top: 0; font-size: 26px; margin-bottom: 25px; color: white; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
 
@@ -83,14 +91,13 @@
             padding: 30px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2); 
             backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px); /* Fixes Safari */
-            transform: translateZ(0); /* FIX: Forces rounded corners to clip properly */
+            -webkit-backdrop-filter: blur(20px);
+            transform: translateZ(0);
         }
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
         .form-group { margin-bottom: 15px; position: relative; }
         label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #4a5568; text-transform: uppercase; letter-spacing: 0.5px; }
         
-        /* CAPS LOCK INPUTS */
         input, select, textarea { 
             width: 100%; padding: 12px 15px; border: 2px solid #e2e8f0; border-radius: 10px; 
             font-family: inherit; font-size: 14px; box-sizing: border-box; background: rgba(255,255,255,0.8); transition: all 0.2s;
@@ -99,7 +106,7 @@
         input:focus, select:focus { outline: none; border-color: var(--primary); background: white; }
         input:disabled, select:disabled { background: #edf2f7; color: #a0aec0; cursor: not-allowed; }
 
-        /* --- AUTOCOMPLETE SUGGESTIONS --- */
+        /* --- AUTOCOMPLETE --- */
         .autocomplete-items {
             position: absolute; border: 1px solid #d4d4d4; border-bottom: none; border-top: none; z-index: 99;
             top: 100%; left: 0; right: 0; border-radius: 0 0 10px 10px; overflow: hidden;
@@ -111,7 +118,7 @@
         }
         .autocomplete-items div:hover { background-color: #e9e9e9; }
 
-        /* --- CUSTOM FILE UPLOAD --- */
+        /* --- FILE UPLOAD --- */
         .file-upload-box {
             position: relative; height: 120px; border: 2px dashed #cbd5e0; border-radius: 10px;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -123,15 +130,15 @@
         .file-preview { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; display: none; position: absolute; top:0; left:0; pointer-events: none; }
 
         /* --- BUTTONS --- */
-        .btn { padding: 12px 24px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; justify-content: center; }
+        .btn { padding: 12px 24px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; justify-content: center; user-select: none; }
         .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; box-shadow: 0 4px 10px rgba(118, 75, 162, 0.3); }
         .btn-success { background: var(--success); color: white; }
         .btn-danger { background: var(--danger); color: white; }
         .btn-secondary { background: #e2e8f0; color: var(--text-dark); }
-        .btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+        .btn:active { transform: scale(0.98); }
         .btn-sm { padding: 8px 16px; font-size: 12px; }
 
-        /* --- TOGGLE SWITCH --- */
+        /* --- SWITCH --- */
         .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
@@ -139,10 +146,9 @@
         input:checked + .slider { background-color: var(--primary); }
         input:checked + .slider:before { transform: translateX(24px); }
 
-        /* --- MAP --- */
         #map, #edit-map { height: 250px; border-radius: 15px; margin-top: 10px; border: 4px solid white; box-shadow: 0 5px 15px rgba(0,0,0,0.1); z-index: 1; }
 
-        /* --- TABLE & FILTERS --- */
+        /* --- TABLE --- */
         table { width: 100%; border-collapse: separate; border-spacing: 0; }
         th { background: rgba(237, 242, 247, 0.9); padding: 16px; font-weight: 600; color: #4a5568; text-align: left; font-size: 12px; border-bottom: 2px solid #e2e8f0; }
         td { padding: 16px; border-bottom: 1px solid #edf2f7; vertical-align: middle; background: rgba(255,255,255,0.6); cursor: pointer; text-transform: uppercase; white-space: nowrap; }
@@ -172,10 +178,8 @@
 
         @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         
-        /* PRINT HIDING */
         #print-area { display: none; }
         
-        /* PRINT LAYOUT */
         @media print { 
             body * { visibility: hidden; } 
             #print-area, #print-area * { visibility: visible; } 
@@ -183,36 +187,34 @@
             .print-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-family: Arial, sans-serif; font-size: 12px; }
             .print-table th, .print-table td { border: 1px solid #000; padding: 8px; text-align: left; text-transform: uppercase; }
             .print-header { text-align: center; margin-bottom: 30px; font-family: Arial, sans-serif; }
-            .print-header h2, .print-header h3, .print-header p { margin: 2px; color: black; }
             .signatories { margin-top: 50px; display: flex; justify-content: space-between; page-break-inside: avoid; }
             .sign-box { text-align: center; width: 40%; border-top: 1px solid black; padding-top: 10px; }
         }
 
-        /* --- MOBILE RESPONSIVE STYLES --- */
+        /* --- MOBILE STYLES --- */
         @media screen and (max-width: 768px) {
             body { flex-direction: column; height: auto; overflow-y: auto; }
             
-            /* Sidebar becomes Top Nav */
             .sidebar { 
                 width: 100%; height: auto; flex-direction: row; overflow-x: auto; 
                 padding: 15px; position: sticky; top: 0; order: 0;
                 border-right: none; border-bottom: 1px solid rgba(255,255,255,0.1);
                 justify-content: flex-start; gap: 15px;
+                
+                /* Hide scrollbar */
+                -ms-overflow-style: none; scrollbar-width: none;
             }
+            .sidebar::-webkit-scrollbar { display: none; }
+
             .sidebar .brand { font-size: 16px; margin: 0 15px 0 0; white-space: nowrap; }
             .sidebar .nav-item { margin: 0; padding: 8px 12px; font-size: 12px; }
             .sidebar .spacer { display: none; }
 
-            /* Main Content */
-            .main { width: 100%; padding: 15px; height: auto; overflow: visible; }
+            .main { width: 100%; padding: 15px; height: auto; overflow: visible; min-height: 80vh; }
             
-            /* Stack Forms */
             .form-grid { grid-template-columns: 1fr; gap: 15px; }
+            .glass-panel { overflow-x: auto; padding: 20px; }
             
-            /* Scrollable Table */
-            .glass-panel { overflow-x: auto; }
-            
-            /* Modals */
             .editor-content, .password-content { width: 90%; max-height: 85vh; padding: 20px; }
             #view-buttons { flex-direction: column; width: 100%; }
             #view-buttons button { width: 100%; margin: 5px 0 !important; }
@@ -239,7 +241,8 @@
             <div class="nav-item" style="color: var(--danger);" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Sign Out</div>
         </div>
 
-        <div class="main">
+        <div class="main" id="main-content-area">
+            
             <div id="tab-add" class="view-section active">
                 <h2>New Registration</h2>
                 <div class="glass-panel">
@@ -434,48 +437,28 @@
                 <h3 style="margin:0;">Animal Record Details</h3>
                 <button onclick="closeEditor()" style="background:none; border:none; font-size:20px; cursor:pointer;">&times;</button>
             </div>
-            
             <div class="form-grid">
                 <div>
                     <input type="hidden" id="edit-id">
-                    <div class="form-group">
-                        <label>Dog Name</label>
-                        <input type="text" id="edit-name" disabled>
-                    </div>
-                    <div class="form-group">
-                        <label>Breed</label>
-                        <input type="text" id="edit-breed" disabled>
-                    </div>
-                    <div class="form-group">
-                        <label>Color</label>
-                        <input type="text" id="edit-color" disabled>
-                    </div>
-                    <div class="form-group">
-                        <label>Photo</label>
+                    <div class="form-group"><label>Dog Name</label><input type="text" id="edit-name" disabled></div>
+                    <div class="form-group"><label>Breed</label><input type="text" id="edit-breed" disabled></div>
+                    <div class="form-group"><label>Color</label><input type="text" id="edit-color" disabled></div>
+                    <div class="form-group"><label>Photo</label>
                         <div class="file-upload-box" id="edit-photo-box" style="display:none; height: 80px; margin-bottom: 10px;">
-                            <input type="file" id="edit-photo-new" accept="image/*">
-                            <span>Upload New Photo</span>
+                            <input type="file" id="edit-photo-new" accept="image/*"><span>Upload New Photo</span>
                         </div>
                         <img id="edit-photo-display" style="width:100%; height:150px; object-fit:cover; border-radius:10px;">
                     </div>
                 </div>
                 <div>
-                    <div class="form-group">
-                        <label>Owner Name</label>
-                        <input type="text" id="edit-owner" disabled>
-                    </div>
-                    <div class="form-group">
-                        <label>Address</label>
-                        <input type="text" id="edit-addr" disabled>
-                    </div>
+                    <div class="form-group"><label>Owner Name</label><input type="text" id="edit-owner" disabled></div>
+                    <div class="form-group"><label>Address</label><input type="text" id="edit-addr" disabled></div>
                     <div id="edit-map"></div>
                 </div>
             </div>
-
             <div class="editor-actions">
                 <div id="view-buttons" style="display: flex; gap: 10px; width: 100%; justify-content: flex-end;">
                     <button class="btn btn-danger" style="margin-right: auto;" onclick="showDeleteModal()"><i class="fas fa-trash"></i> Delete</button>
-                    
                     <button class="btn btn-secondary" onclick="generatePrintableID(document.getElementById('edit-id').value, getCurrentEditData())"><i class="fas fa-print"></i> Print ID</button>
                     <button class="btn btn-primary" onclick="toggleEditMode(true)"><i class="fas fa-edit"></i> Edit Record</button>
                 </div>
@@ -544,22 +527,61 @@
         let html5QrCode;
 
         onAuthStateChanged(auth, user => {
-            if(!user) {
-                // Not logged in? Go back to login
-                window.location.href = "index.html";
-            } else {
-                // Logged in? Hide loader, show app
+            if(!user) { window.location.href = "index.html"; } 
+            else {
                 document.getElementById('loading-overlay').style.display = 'none';
                 document.getElementById('app-wrapper').style.display = 'flex';
-                
-                // Initialize regions first, then load user config
                 initRegions().then(() => loadConfig());
             }
         });
 
         window.logout = () => signOut(auth).then(() => window.location.href = "index.html");
 
-        // --- DYNAMIC LOCATION LOGIC (PSGC API) ---
+        // --- SWIPE LOGIC FOR MOBILE ---
+        let touchStartX = 0;
+        let touchStartY = 0;
+        const tabs = ['add', 'records', 'scan', 'config'];
+
+        const mainContent = document.getElementById('main-content-area');
+        
+        mainContent.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+        }, {passive: false});
+
+        mainContent.addEventListener('touchend', e => {
+            const touchEndX = e.changedTouches[0].screenX;
+            const touchEndY = e.changedTouches[0].screenY;
+            handleSwipe(touchStartX, touchStartY, touchEndX, touchEndY);
+        }, {passive: false});
+
+        function handleSwipe(startX, startY, endX, endY) {
+            const diffX = endX - startX;
+            const diffY = endY - startY;
+
+            // Only swipe if movement is significantly horizontal (> 50px)
+            // and clearly not a vertical scroll (X diff > Y diff)
+            if (Math.abs(diffX) > 60 && Math.abs(diffX) > Math.abs(diffY)) {
+                
+                // Find current active tab
+                let currentTabId = "";
+                document.querySelectorAll('.view-section').forEach(el => {
+                    if (el.classList.contains('active')) currentTabId = el.id.replace('tab-', '');
+                });
+
+                const currentIndex = tabs.indexOf(currentTabId);
+
+                if (diffX < 0) {
+                    // Swipe Left -> Next Tab
+                    if (currentIndex < tabs.length - 1) switchTab(tabs[currentIndex + 1]);
+                } else {
+                    // Swipe Right -> Prev Tab
+                    if (currentIndex > 0) switchTab(tabs[currentIndex - 1]);
+                }
+            }
+        }
+
+        // --- DYNAMIC LOCATION LOGIC ---
         async function initRegions() {
             const regSel = document.getElementById('cfg-region');
             regSel.innerHTML = "<option>Loading Regions...</option>";
@@ -570,15 +592,11 @@
                 regSel.innerHTML = "";
                 data.forEach(r => {
                     let opt = document.createElement('option');
-                    opt.value = r.code; 
-                    opt.innerText = r.name + " (" + r.regionName + ")";
+                    opt.value = r.code; opt.innerText = r.name + " (" + r.regionName + ")";
                     regSel.appendChild(opt);
                 });
                 await updateProvinces();
-            } catch (e) {
-                console.error("Failed to load regions:", e);
-                regSel.innerHTML = "<option>Error loading regions</option>";
-            }
+            } catch (e) { console.error("Failed to load regions:", e); regSel.innerHTML = "<option>Error loading regions</option>"; }
         }
 
         window.updateProvinces = async () => {
@@ -586,7 +604,6 @@
             const provSel = document.getElementById('cfg-province');
             provSel.innerHTML = "<option>Loading Provinces...</option>";
             provSel.disabled = true;
-
             try {
                 const response = await fetch(`https://psgc.gitlab.io/api/regions/${regCode}/provinces/`);
                 const data = await response.json();
@@ -594,25 +611,18 @@
                 provSel.innerHTML = "";
                 data.forEach(p => {
                     let opt = document.createElement('option');
-                    opt.value = p.name;
-                    opt.innerText = p.name;
+                    opt.value = p.name; opt.innerText = p.name;
                     provSel.appendChild(opt);
                 });
                 provSel.disabled = false;
-            } catch (e) {
-                console.error("Failed to load provinces:", e);
-                provSel.innerHTML = "<option>No provinces found</option>";
-                provSel.disabled = false;
-            }
+            } catch (e) { console.error("Failed to load provinces:", e); provSel.innerHTML = "<option>No provinces found</option>"; provSel.disabled = false; }
         };
 
-        // --- UI UTILS ---
         window.switchTab = (tabId) => {
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
             document.getElementById(`tab-${tabId}`).classList.add('active');
             document.getElementById(`nav-${tabId}`).classList.add('active');
-            
             if(tabId === 'add') setTimeout(() => { if(!map) initMap(); else map.invalidateSize(); }, 200);
             if(tabId === 'records') loadRecords();
         };
@@ -639,29 +649,16 @@
             document.getElementById('modal-overlay').style.display = 'flex';
         };
 
-        // --- OWNER SEARCH (300ms Debounce) ---
-        window.debounceOwnerSearch = () => {
-            clearTimeout(ownerSearchTimer);
-            ownerSearchTimer = setTimeout(performOwnerSearch, 300);
-        };
-
+        window.debounceOwnerSearch = () => { clearTimeout(ownerSearchTimer); ownerSearchTimer = setTimeout(performOwnerSearch, 300); };
         async function performOwnerSearch() {
             const term = document.getElementById('add-owner').value.toUpperCase().trim();
             const suggestionsDiv = document.getElementById('owner-suggestions');
             suggestionsDiv.innerHTML = "";
-            
             if(term.length < 2) return;
-
-            const q = query(collection(db, "dogs"), 
-                where("owner", ">=", term), 
-                where("owner", "<=", term + '\uf8ff'),
-                limit(5));
-                
+            const q = query(collection(db, "dogs"), where("owner", ">=", term), where("owner", "<=", term + '\uf8ff'), limit(5));
             const snap = await getDocs(q);
             const uniqueOwners = new Set();
-
             snap.forEach(doc => { uniqueOwners.add(doc.data().owner); });
-
             uniqueOwners.forEach(ownerName => {
                 const div = document.createElement('div');
                 div.innerText = ownerName;
@@ -673,7 +670,6 @@
             });
         }
 
-        // --- MAPS ---
         function initMap() {
             map = L.map('map').setView([18.25, 122.1], 13);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
@@ -686,12 +682,10 @@
             const zoom = hasLocation ? 15 : 13;
             editMap = L.map('edit-map').setView(center, zoom);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(editMap);
-            if (hasLocation) { editMarker = L.marker([lat, lng]).addTo(editMap); } 
-            else { editMarker = null; }
+            if (hasLocation) { editMarker = L.marker([lat, lng]).addTo(editMap); } else { editMarker = null; }
             editMap.on('click', (e) => {
                 if(!document.getElementById('edit-name').disabled) {
-                    if(editMarker) { editMarker.setLatLng(e.latlng); } 
-                    else { editMarker = L.marker(e.latlng).addTo(editMap); }
+                    if(editMarker) { editMarker.setLatLng(e.latlng); } else { editMarker = L.marker(e.latlng).addTo(editMap); }
                 }
             });
         }
@@ -734,7 +728,6 @@
             });
         };
 
-        // --- SAVE DOG ---
         window.saveDogRecord = async () => {
             const name = document.getElementById('add-name').value.toUpperCase();
             const owner = document.getElementById('add-owner').value.toUpperCase();
@@ -776,6 +769,10 @@
                 if(marker) map.removeLayer(marker);
                 
                 btn.innerHTML = '<i class="fas fa-check"></i> Saved!';
+                
+                // --- SUCCESS MESSAGE ADDED HERE ---
+                showAlert("Saved Successfully", "The record has been added to the database.", "success");
+
                 setTimeout(() => { btn.disabled=false; btn.innerText="Save Record & Generate ID"; }, 2000);
             } catch (e) {
                 console.error(e);
@@ -784,7 +781,6 @@
             }
         };
 
-        // --- RECORDS LOAD ---
         async function loadRecords(direction = 0) {
             const tbody = document.getElementById('tbody-records');
             tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Loading...</td></tr>';
@@ -821,7 +817,6 @@
         }
         window.changePage = (dir) => loadRecords(dir);
 
-        // --- PRINT LIST REPORT ---
         window.printListReport = async () => {
             const fBreed = document.getElementById('filter-breed').value;
             const fEye = document.getElementById('filter-eye').value;
@@ -859,7 +854,6 @@
             window.print();
         };
 
-        // --- VIEWER / EDITOR ---
         let currentRecord = null;
         window.openEditor = (id, data) => {
             currentRecord = { id, ...data };
@@ -938,7 +932,6 @@
              };
         }
         
-        // --- IMPROVED SCANNER (Handles URLs and raw IDs) ---
         window.startScanner = () => {
             document.getElementById('qr-placeholder').style.display = 'none';
             document.getElementById('qr-reader').style.display = 'block';
@@ -947,14 +940,11 @@
                 (decodedText) => {
                     html5QrCode.stop();
                     let id = decodedText;
-                    // Attempt to extract ID if it's a URL (like your dashboard generates)
                     try {
                         const url = new URL(decodedText);
                         const idParam = url.searchParams.get("id");
                         if(idParam) id = idParam;
-                    } catch(e) {
-                        // If it fails, it's just a raw ID (like the demo generates) - do nothing, use `id` as is.
-                    }
+                    } catch(e) {}
                     
                     if(id) { 
                         getDoc(doc(db, "dogs", id)).then(snap => { 
@@ -988,7 +978,6 @@
             });
         }
         
-        // --- IMPROVED PRINT ID (Larger QR Code) ---
         window.generatePrintableID = (id, data) => {
             const c = currentConfig;
             const isIndep = document.getElementById('cfg-independent').checked;
@@ -1021,7 +1010,6 @@
                     </div>
                 </div>`;
             
-            // INCREASED SIZE FROM 50 to 128 (Makes it readable)
             new QRCode(document.getElementById(`print-qr-${id}`), { text: `https://barangay-animal-registry.web.app/index.html?id=${id}`, width: 128, height: 128 });
             setTimeout(() => window.print(), 500);
         };
