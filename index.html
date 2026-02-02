@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="manifest" href="manifest.json">
+
+<link rel="apple-touch-icon" href="icon.png">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#667eea">
+
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('App Installed!', reg.scope))
+                .catch(err => console.log('App Fail:', err));
+        });
+    }
+</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barangay Registry - Access</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <style>
+        :root {
+            --card-bg: rgba(255, 255, 255, 0.90);
+            --text-dark: #2d3748;
+            --text-light: #718096;
+            --accent: #764ba2;
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(rgba(44, 62, 80, 0.85), rgba(118, 75, 162, 0.85)), 
+                        url('https://source.unsplash.com/random/1920x1080/?happy-dogs,golden-retriever');
+            background-size: cover; background-position: center; background-attachment: fixed;
+            margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; color: var(--text-dark);
+        }
+        .container {
+            background: var(--card-bg); padding: 40px; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            width: 100%; max-width: 400px; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            display: none; animation: fadeIn 0.5s ease-out;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        h1 { text-align: center; color: var(--accent); margin: 0 0 10px 0; }
+        .subtitle { text-align: center; color: var(--text-light); font-size: 0.9em; margin-bottom: 30px; }
+        
+        /* Form Styles */
+        .input-group { position: relative; margin-bottom: 20px; }
+        .input-group i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--accent); }
+        input { width: 100%; padding: 12px 15px 12px 45px; border: 2px solid #e2e8f0; border-radius: 10px; box-sizing: border-box; font-family: inherit; }
+        input:focus { border-color: var(--accent); outline: none; }
+        button.primary-btn { width: 100%; padding: 14px; background: var(--primary-gradient); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: transform 0.2s; }
+        button.primary-btn:hover { transform: translateY(-2px); }
+
+        /* ID Card Styles */
+        .id-card { width: 350px; height: 220px; background: #fff; border-radius: 15px; position: relative; overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.15); margin: 0 auto; display: flex; flex-direction: column; }
+        .id-header { background: var(--primary-gradient); color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 600; }
+        .id-body { padding: 20px; display: flex; gap: 15px; align-items: center; }
+        .id-photo { width: 90px; height: 90px; border-radius: 12px; object-fit: cover; border: 3px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .id-info { flex: 1; }
+        .id-name { font-size: 20px; font-weight: 700; color: var(--text-dark); margin: 0; text-transform: uppercase; }
+        .id-detail { font-size: 11px; color: var(--text-light); margin-top: 4px; }
+        .id-detail span { color: var(--text-dark); font-weight: 600; }
+        .id-footer { margin-top: auto; padding: 0 20px 15px 20px; display: flex; justify-content: flex-end; }
+        .qr-box { background: white; padding: 5px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        #qrcode img { width: 50px !important; height: 50px !important; }
+
+        @media print {
+            body { background: white !important; padding: 0; display: block; }
+            .container { display: none !important; }
+            #view-id-card { display: block !important; position: absolute; top: 0; left: 0; width: 100%; box-shadow: none; backdrop-filter: none; }
+            .print-actions { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="view-login">
+        <h1>Admin Access</h1>
+        <p class="subtitle">Secure Barangay Registry System</p>
+        <div class="input-group"><i class="fas fa-envelope"></i><input type="email" id="loginEmail" placeholder="Admin Email"></div>
+        <div class="input-group"><i class="fas fa-lock"></i><input type="password" id="loginPass" placeholder="Password"></div>
+        <button class="primary-btn" onclick="login()">Login to Dashboard</button>
+        <p id="error-msg" style="color:red; text-align:center; display:none; margin-top:10px; font-size:14px;"></p>
+    </div>
+
+    <div class="container" id="view-id-card" style="background: transparent; box-shadow: none; border: none; max-width: 500px;">
+        <div class="id-card">
+            <div class="id-header"><span><i class="fas fa-shield-alt"></i> BARANGAY REGISTRY</span><span id="dispId">ID: --</span></div>
+            <div class="id-body">
+                <img id="dispImg" class="id-photo" src="">
+                <div class="id-info">
+                    <h2 class="id-name" id="dispName">--</h2>
+                    <div class="id-detail">OWNER: <span id="dispOwner">--</span></div>
+                    <div class="id-detail">BREED: <span id="dispType">--</span></div>
+                    <div class="id-detail">COLOR: <span id="dispColor">--</span></div>
+                </div>
+            </div>
+            <div class="id-footer"><div class="qr-box" id="qrcode"></div></div>
+        </div>
+        <div class="print-actions" style="text-align:center; margin-top:20px;">
+            <button onclick="window.print()" style="padding:10px 20px; background:white; border:none; border-radius:8px; cursor:pointer;">🖨️ Print</button>
+            <button onclick="location.href='index.html'" style="padding:10px 20px; background:rgba(255,255,255,0.5); border:none; border-radius:8px; cursor:pointer;">Back to Login</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, getDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA19XQgYJDWHvBsiYWWbO4HX612VQDCbM8",
+            authDomain: "barangay-animal-registry.firebaseapp.com",
+            projectId: "barangay-animal-registry",
+            storageBucket: "barangay-animal-registry.firebasestorage.app",
+            messagingSenderId: "377200658839",
+            appId: "1:377200658839:web:fc4074c2359970aa039cd2",
+            measurementId: "G-JWY1GMSNQF"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // ROUTER LOGIC
+        const urlParams = new URLSearchParams(window.location.search);
+        const dogId = urlParams.get('id');
+
+        if (dogId) {
+            // SHOW ID CARD
+            document.getElementById('view-id-card').style.display = 'block';
+            getDoc(doc(db, "dogs", dogId)).then(docSnap => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    document.getElementById('dispId').innerText = "ID: " + docSnap.id.substring(0,6).toUpperCase();
+                    document.getElementById('dispName').innerText = data.name;
+                    document.getElementById('dispOwner').innerText = data.owner;
+                    document.getElementById('dispType').innerText = data.type;
+                    document.getElementById('dispColor').innerText = data.color;
+                    document.getElementById('dispImg').src = data.photoURL;
+                    new QRCode(document.getElementById("qrcode"), { text: window.location.href, width: 50, height: 50 });
+                } else {
+                    alert("ID not found");
+                }
+            });
+        } else {
+            // SHOW LOGIN
+            document.getElementById('view-login').style.display = 'block';
+        }
+
+        // LOGIN FUNCTION
+        window.login = async () => {
+            const email = document.getElementById('loginEmail').value;
+            const pass = document.getElementById('loginPass').value;
+            const err = document.getElementById('error-msg');
+            
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+                // SUCCESS: Redirect to Dashboard
+                window.location.href = "dashboard.html";
+            } catch (error) {
+                err.innerText = "Login Failed: " + error.code;
+                err.style.display = 'block';
+            }
+        };
+    </script>
+</body>
+</html>
