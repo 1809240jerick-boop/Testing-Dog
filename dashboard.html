@@ -79,8 +79,8 @@
             padding: 30px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2); 
             backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px); /* Fixes Safari */
-            transform: translateZ(0); /* FIX: Forces rounded corners to clip properly */
+            -webkit-backdrop-filter: blur(20px);
+            transform: translateZ(0);
         }
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
         .form-group { margin-bottom: 15px; position: relative; }
@@ -107,13 +107,14 @@
         }
         .autocomplete-items div:hover { background-color: #e9e9e9; }
 
-        /* --- CUSTOM FILE UPLOAD --- */
+        /* --- CUSTOM FILE UPLOAD (With Camera Support) --- */
         .file-upload-box {
             position: relative; height: 120px; border: 2px dashed #cbd5e0; border-radius: 10px;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             background: rgba(255,255,255,0.5); cursor: pointer; transition: 0.2s; text-align: center;
         }
         .file-upload-box:hover { border-color: var(--primary); background: rgba(255,255,255,0.8); }
+        /* Added capture="environment" for rear camera on mobile */
         .file-upload-box input { position: absolute; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
         .file-info { font-size: 12px; color: var(--text-light); pointer-events: none; }
         .file-preview { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; display: none; position: absolute; top:0; left:0; pointer-events: none; }
@@ -149,7 +150,7 @@
         .filters-bar select { width: auto; min-width: 150px; padding: 8px; font-size: 13px; }
 
         /* --- MODALS --- */
-        #editor-modal, #password-modal { 
+        #editor-modal, #password-modal, #success-modal { 
             position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); z-index: 2000;
             display: none; justify-content: center; align-items: center; backdrop-filter: blur(5px);
         }
@@ -157,9 +158,13 @@
             background: #fff; width: 700px; max-width: 95%; max-height: 90vh; overflow-y: auto;
             border-radius: 20px; padding: 30px; position: relative; animation: popIn 0.3s;
         }
-        .password-content {
-            background: #fff; width: 400px; padding: 30px; border-radius: 20px; text-align: center; animation: popIn 0.3s;
+        .password-content, .success-content {
+            background: #fff; width: 400px; max-width: 90%; padding: 30px; border-radius: 20px; text-align: center; animation: popIn 0.3s;
         }
+        .success-content i { font-size: 60px; color: var(--success); margin-bottom: 20px; }
+        .success-content h3 { margin: 0 0 10px 0; color: var(--text-dark); }
+        .success-content p { color: var(--text-light); margin-bottom: 25px; }
+
         .editor-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
         .editor-actions { display: flex; gap: 10px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; justify-content: flex-end; }
 
@@ -209,7 +214,7 @@
             .glass-panel { overflow-x: auto; }
             
             /* Modals */
-            .editor-content, .password-content { width: 90%; max-height: 85vh; padding: 20px; }
+            .editor-content, .password-content, .success-content { width: 90%; max-height: 85vh; padding: 20px; }
             #view-buttons { flex-direction: column; width: 100%; }
             #view-buttons button { width: 100%; margin: 5px 0 !important; }
             .filters-bar { flex-direction: column; }
@@ -279,9 +284,9 @@
                         <div class="form-group">
                             <label>Photo Evidence <span style="color:var(--danger)">*</span></label>
                             <div class="file-upload-box" onclick="document.getElementById('add-photo').click()">
-                                <input type="file" id="add-photo" accept="image/*" onchange="previewImage(this, 'add-preview')">
-                                <i class="fas fa-cloud-upload-alt" style="font-size: 24px; color: var(--primary); margin-bottom: 5px;"></i>
-                                <span class="file-info">Click to Upload Image</span>
+                                <input type="file" id="add-photo" accept="image/*" capture="environment" onchange="previewImage(this, 'add-preview')">
+                                <i class="fas fa-camera" style="font-size: 24px; color: var(--primary); margin-bottom: 5px;"></i>
+                                <span class="file-info">Tap to Take or Upload Photo</span>
                                 <img id="add-preview" class="file-preview">
                             </div>
                         </div>
@@ -442,8 +447,8 @@
                     <div class="form-group">
                         <label>Photo</label>
                         <div class="file-upload-box" id="edit-photo-box" style="display:none; height: 80px; margin-bottom: 10px;">
-                            <input type="file" id="edit-photo-new" accept="image/*">
-                            <span>Upload New Photo</span>
+                            <input type="file" id="edit-photo-new" accept="image/*" capture="environment">
+                            <span><i class="fas fa-camera"></i> Take/Upload New Photo</span>
                         </div>
                         <img id="edit-photo-display" style="width:100%; height:150px; object-fit:cover; border-radius:10px;">
                     </div>
@@ -485,6 +490,15 @@
                 <button class="btn btn-secondary" onclick="document.getElementById('password-modal').style.display='none'">Cancel</button>
                 <button class="btn btn-danger" onclick="confirmDelete()">Confirm Delete</button>
             </div>
+        </div>
+    </div>
+
+    <div id="success-modal">
+        <div class="success-content">
+            <i class="fas fa-check-circle"></i>
+            <h3>Registration Successful!</h3>
+            <p>The animal record has been securely saved to the registry database.</p>
+            <button class="btn btn-primary" onclick="document.getElementById('success-modal').style.display='none'">Continue</button>
         </div>
     </div>
 
@@ -747,7 +761,7 @@
             });
         };
 
-        // --- SAVE DOG (With Auto Reset & Caps) ---
+        // --- SAVE DOG (With Auto Reset & Caps & New Success Modal) ---
         window.saveDogRecord = async () => {
             const name = document.getElementById('add-name').value.toUpperCase();
             const owner = document.getElementById('add-owner').value.toUpperCase();
@@ -792,7 +806,12 @@
                 if(marker) map.removeLayer(marker);
                 
                 btn.innerHTML = '<i class="fas fa-check"></i> Saved!';
-                setTimeout(() => { btn.disabled=false; btn.innerText="Save Record & Generate ID"; }, 2000);
+                setTimeout(() => { 
+                    btn.disabled=false; 
+                    btn.innerText="Save Record & Generate ID"; 
+                    // Show new success modal instead of basic alert
+                    document.getElementById('success-modal').style.display = 'flex';
+                }, 2000);
             } catch (e) {
                 console.error(e);
                 showAlert("Error", e.message, "error");
@@ -1050,13 +1069,20 @@
             html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } },
                 (decodedText) => {
                     html5QrCode.stop();
-                    const url = new URL(decodedText);
-                    const id = url.searchParams.get("id");
-                    if(id) { 
-                        getDoc(doc(db, "dogs", id)).then(snap => {
-                            if(snap.exists()) openEditor(snap.id, snap.data());
-                            else showAlert("Error", "ID not found in database.", "error");
-                        });
+                    // UPDATED: Check if QR is a URL and contains an ID parameter
+                    try {
+                        const url = new URL(decodedText);
+                        const id = url.searchParams.get("id");
+                        if(id) { 
+                            getDoc(doc(db, "dogs", id)).then(snap => {
+                                if(snap.exists()) openEditor(snap.id, snap.data());
+                                else showAlert("Error", "ID not found in database.", "error");
+                            });
+                        } else {
+                             showAlert("Invalid QR", "This QR code does not contain a valid ID link.", "error");
+                        }
+                    } catch (e) {
+                        showAlert("Invalid QR", "This is not a valid URL QR code.", "error");
                     }
                 }, () => {}
             );
@@ -1084,6 +1110,7 @@
             });
         }
         
+        // UPDATED generatePrintableID to point to viewer.html
         window.generatePrintableID = (id, data) => {
             const c = currentConfig;
             const isIndep = document.getElementById('cfg-independent').checked;
@@ -1093,6 +1120,9 @@
             if(!isIndep) headerText += `Province of ${c.province || "..."}<br>`;
             
             headerText += `${isIndep ? "City" : "Municipality"} of ${c.muni || "..."}<br><b>BARANGAY ${c.brgy ? c.brgy.toUpperCase() : "..."}</b>`;
+
+            // IMPORTANT: The QR code now links to viewer.html, not index.html
+            const viewerUrl = window.location.origin + `/viewer.html?id=${id}`;
 
             document.getElementById('print-area').innerHTML = `
                 <div style="width: 3.375in; height: 2.125in; border: 2px solid black; padding: 10px; font-family: Arial; position: relative; page-break-inside: avoid; margin: 10px;">
@@ -1119,7 +1149,7 @@
                     </div>
                 </div>
             `;
-            new QRCode(document.getElementById(`print-qr-${id}`), { text: `https://barangay-animal-registry.web.app/index.html?id=${id}`, width: 50, height: 50 });
+            new QRCode(document.getElementById(`print-qr-${id}`), { text: viewerUrl, width: 50, height: 50 });
             setTimeout(() => window.print(), 500);
         };
 
